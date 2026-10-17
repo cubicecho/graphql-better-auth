@@ -1,0 +1,69 @@
+{
+  "name": "@cubicecho/graphql-better-auth",
+  "version": "0.0.0-development",
+  "description": "better-auth's endpoints as a GraphQL schema extension: typed SDL and resolvers, generated from the auth instance.",
+  "license": "MIT",
+  "author": "Benjamin Van Treese",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cubicecho/graphql-better-auth.git"
+  },
+  "homepage": "https://github.com/cubicecho/graphql-better-auth#readme",
+  "bugs": {
+    "url": "https://github.com/cubicecho/graphql-better-auth/issues"
+  },
+  "keywords": [
+    "better-auth",
+    "graphql",
+    "auth",
+    "schema"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "format": "biome format --write .",
+    "lint": "biome lint .",
+    "check": "npm run check:biome && npm run typecheck",
+    "check:biome": "biome check ."
+  },
+  "peerDependencies": {
+    "better-auth": "^1.7.0",
+    "graphql": "^16.0.0 || ^17.0.0"
+  },
+  "devDependencies": {
+    "@better-auth/api-key": "1.7.10",
+    "@better-auth/core": "1.7.10",
+    "@biomejs/biome": "2.4.6",
+    "@semantic-release/changelog": "^6.0.3",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/git": "^10.0.1",
+    "@semantic-release/github": "^12.0.8",
+    "@semantic-release/npm": "^13.1.5",
+    "@semantic-release/release-notes-generator": "^14.1.1",
+    "@types/node": "^22.13.0",
+    "better-auth": "1.7.10",
+    "graphql": "^16.13.2",
+    "semantic-release": "^25.0.5",
+    "typescript": "~6.0.3",
+    "vitest": "^3.0.5"
+  }
+}

@@ -1,0 +1,46 @@
+name: Test
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    name: test (better-auth ${{ matrix.better-auth }}, graphql ${{ matrix.graphql }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        # The lowest and latest of each peer range. Endpoint metadata moves
+        # between better-auth releases, so both ends have to pass.
+        better-auth: ['1.7.0', '^1.7']
+        graphql: ['^16', '^17']
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install better-auth ${{ matrix.better-auth }} / graphql ${{ matrix.graphql }}
+        run: >-
+          npm install --no-save
+          "better-auth@${{ matrix.better-auth }}"
+          "@better-auth/api-key@${{ matrix.better-auth }}"
+          "@better-auth/core@${{ matrix.better-auth }}"
+          "graphql@${{ matrix.graphql }}"
+
+      - name: Lint
+        run: npx biome check .
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
