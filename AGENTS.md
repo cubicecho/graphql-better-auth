@@ -10,7 +10,8 @@ still its main consumer.
 
 ## Layout
 
-- `src/index.ts`: the public API (`betterAuthGraphQL`, `applyBetterAuthGraphQL`, options, `RESULT_PATCHES`).
+- `src/index.ts`: the public API (`betterAuthGraphQL`, `applyBetterAuthGraphQL`, options).
+- `src/patches.ts`: `BUILT_IN_PATCHES`, the corrections to responses better-auth documents wrongly, and `patchResult`.
 - `src/operations.ts`: reads endpoints and models off the auth instance (`describeOperations`, `describeModels`).
 - `src/sdl.ts`: JSON Schema to SDL (`SdlBuilder`).
 - `src/resolvers.ts`: one resolver per operation, and `toGraphQLError`.
@@ -19,12 +20,14 @@ still its main consumer.
 ## Rules
 
 - The surface is derived from the auth instance, never listed. Do not hardcode endpoint names except as exceptions
-  (`HTTP_ONLY`, `REDIRECT_ARGS`, `USER_INPUT_PATHS`, `RESULT_PATCHES`), each with a comment saying why.
+  (`HTTP_ONLY`, `REDIRECT_ARGS`, `USER_INPUT_PATHS`, `BUILT_IN_PATCHES`), each with a comment saying why.
 - A resolver adds no auth checks of its own: better-auth does them. Host rules go in `before` or `around`.
 - What GraphQL cannot express (open records, unions of unlike things, untyped values) becomes the JSON scalar rather
   than a guess.
-- `RESULT_PATCHES` fixes places where better-auth's documented response is wrong. Re-check them on a better-auth
-  upgrade and update the version noted in the README.
+- `BUILT_IN_PATCHES` fixes places where better-auth's documented response is wrong. Every patch has a `reason`, and an
+  `applies` check that is false once the docs are right, so a better-auth fix makes the patch step aside rather than
+  double-patch. A new patch also gets a case in `src/patches.test.ts`, which compares the served fields with what the
+  endpoint really returns. When better-auth has fixed one across the whole peer range, delete it.
 
 ## Stack
 

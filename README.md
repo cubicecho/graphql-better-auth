@@ -70,6 +70,7 @@ query { getSession { user { email } session { expiresAt } } }
 | `before(call)` | Runs before every call. Throw to refuse it, for example for rate limiting, captcha, or your own rules about who may call what. |
 | `onResponseHeaders(headers, call)` | Gets the headers an endpoint set (`set-cookie`, the bearer plugin's `set-auth-token`). Forward them here if you serve cookies. |
 | `mapError(error, call)` | Turns what an endpoint threw into what the caller sees. Defaults to `toGraphQLError`. |
+| `builtInPatches` | Whether to correct the responses better-auth documents wrongly. Defaults to `true`. See [Patched results](#patched-results). |
 | `operations` | Per-operation changes, by endpoint name. See below. |
 
 ### Per operation
@@ -148,13 +149,20 @@ since a cookie-authenticated mutation is a state-changing request.
 
 ## Patched results
 
-In some places better-auth's documented response is not what it actually returns. The library corrects these (checked
-against better-auth 1.7.10):
+In some places better-auth's documented response is not what it actually returns. The schema is built from those
+documents, so the library corrects them with built-in patches (checked against better-auth 1.7.10):
 
 - `magicLinkVerify` is documented as `{ session, user }` but also returns the session `token`.
 - `updateUser` is documented as `{ user }` but returns `{ status: true }`.
 
-An `operations.<name>.result` of your own is applied after these.
+Each patch first checks that the mistake is still in the documented schema. Once better-auth fixes its docs, the
+patch stops applying, so upgrading better-auth never double-patches. A test calls both endpoints and checks that the
+served types match what they return.
+
+The patches are exported as `BUILT_IN_PATCHES`, each with a `reason`, an `applies(documented)` check and a
+`fix(documented)`. `patchResult(name, documented)` applies the one for an endpoint. To serve better-auth's documents
+unchanged, pass `builtInPatches: false`. An `operations.<name>.result` of your own is applied after the built-in
+patches.
 
 ## Lower-level pieces
 

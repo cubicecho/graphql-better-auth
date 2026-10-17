@@ -7,6 +7,7 @@ import {
   describeOperations,
   type OperationKind,
 } from './operations.ts';
+import { BUILT_IN_PATCHES, patchResult } from './patches.ts';
 import { type Around, type AuthResolver, createResolver, type ResolverOptions } from './resolvers.ts';
 import { SdlBuilder } from './sdl.ts';
 
@@ -19,6 +20,8 @@ import { SdlBuilder } from './sdl.ts';
 export type { JsonSchema } from './json-schema.ts';
 export type { AuthArg, AuthLike, AuthOperation, OperationKind } from './operations.ts';
 export { describeModels, describeOperations } from './operations.ts';
+export type { ResultPatchFix } from './patches.ts';
+export { BUILT_IN_PATCHES, patchResult } from './patches.ts';
 export type { Around, AuthResolver, OperationCall, ResolverOptions } from './resolvers.ts';
 export { toGraphQLError } from './resolvers.ts';
 
@@ -40,6 +43,12 @@ export interface BetterAuthGraphQLOptions<TContext> extends ResolverOptions<TCon
   scalars?: { dateTime?: string | undefined; json?: string | undefined } | undefined;
   /** What to change about one operation, by endpoint name. */
   operations?: Record<string, OperationOptions<TContext>> | undefined;
+  /**
+   * Whether to correct the responses better-auth documents wrongly
+   * (`BUILT_IN_PATCHES`). Each one only applies while the mistake is still
+   * there. Defaults to true.
+   */
+  builtInPatches?: boolean | undefined;
 }
 
 export interface OperationOptions<TContext> {
@@ -59,21 +68,6 @@ export interface OperationOptions<TContext> {
 }
 
 export type ResultPatch = JsonSchema | ((documented: JsonSchema | undefined) => JsonSchema | undefined);
-
-/** Where better-auth's documented responses leave out what it returns (checked against 1.7.10). */
-const RESULT_PATCHES: Record<string, ResultPatch> = {
-  // Documented as `{ session, user }`; also returns the session token.
-  magicLinkVerify: (documented) =>
-    documented?.properties
-      ? {
-          ...documented,
-          properties: { token: { type: 'string' }, ...documented.properties },
-          required: ['token', ...(documented.required ?? [])],
-        }
-      : documented,
-  // Documented as `{ user }`; returns `{ status: true }`.
-  updateUser: { type: 'object', properties: { status: { type: 'boolean' } }, required: ['status'] },
-};
 
 export interface BetterAuthGraphQL<TContext> {
   /** The operations served, in `auth.api` order. */
@@ -104,7 +98,14 @@ export function betterAuthGraphQL<TContext>(
         (include === undefined ||
           (typeof include === 'function' ? include(operation) : include.includes(operation.name))),
     )
-    .map((operation) => withOverrides(operation, RESULT_PATCHES[operation.name], overrides[operation.name]));
+    .map((operation) =>
+      withOverrides(
+        options.builtInPatches === false
+          ? operation
+          : { ...operation, result: patchResult(operation.name, operation.result, BUILT_IN_PATCHES) },
+        overrides[operation.name],
+      ),
+    );
 
   const fieldName = options.fieldName ?? ((operation: AuthOperation) => operation.name);
   const scalars = { dateTime: options.scalars?.dateTime ?? 'DateTime', json: options.scalars?.json ?? 'JSON' };
@@ -123,16 +124,13 @@ export function betterAuthGraphQL<TContext>(
   return { operations, typeDefs, scalars, resolvers };
 }
 
-/** An operation less the arguments it should not offer, with its result patched: ours first, then the host's. */
+/** An operation less the arguments it should not offer, with the host's result patch applied. */
 function withOverrides<TContext>(
   operation: AuthOperation,
-  patch: ResultPatch | undefined,
   overrides: OperationOptions<TContext> | undefined,
 ): AuthOperation {
-  let result = operation.result;
-  for (const step of [patch, overrides?.result]) {
-    if (step) result = typeof step === 'function' ? step(result) : step;
-  }
+  const patch = overrides?.result;
+  const result = patch === undefined ? operation.result : typeof patch === 'function' ? patch(operation.result) : patch;
   const omit = new Set(overrides?.omitArgs ?? []);
   const args = Object.fromEntries(Object.entries(operation.args).filter(([name]) => !omit.has(name)));
   return { ...operation, args, result };
