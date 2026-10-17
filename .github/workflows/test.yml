@@ -25,9 +25,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # better-auth 1.7.0's optional framework peers (@tanstack/react-start and
+      # its vite) conflict with the lockfile; none of them is used here.
       - name: Install better-auth ${{ matrix.better-auth }} / graphql ${{ matrix.graphql }}
         run: >-
-          npm install --no-save
+          npm install --no-save --legacy-peer-deps
           "better-auth@${{ matrix.better-auth }}"
           "@better-auth/api-key@${{ matrix.better-auth }}"
           "@better-auth/core@${{ matrix.better-auth }}"
