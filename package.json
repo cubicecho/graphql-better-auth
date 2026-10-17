@@ -1,6 +1,6 @@
 {
   "name": "@cubicecho/graphql-better-auth",
-  "version": "0.0.0-development",
+  "version": "1.1.0",
   "description": "better-auth's endpoints as a GraphQL schema extension: typed SDL and resolvers, generated from the auth instance.",
   "license": "MIT",
   "author": "Benjamin Van Treese",
